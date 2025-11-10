@@ -32,7 +32,7 @@ typedef struct{
     unsigned int num_frame;
     unsigned int valid_bit;
     unsigned int referenced_bit;
-    char conteudo[MAX_PAGES];
+    int tempo_entrada;
 } TabelaPagina;
 
 //Struct para tradução de endereços:
@@ -42,10 +42,18 @@ typedef struct{
     unsigned int end_fisico;
 } Traducao;
 
+typedef struct{
+    int ocupied;
+    int pagina_virtual;
+} Frame;
+
 //Struct para lista FIFO:
 typedef struct{
     unsigned int pag_virtual;
 } AlgFIFO;
+
+// Esse tempo é usado para o -> FIFO <-
+int tempo_global_fifo = 0;
 
 //------------------------------------------------------------------//
 /**
@@ -80,21 +88,20 @@ ConfigMemoria arquivo_config(const char *arquivo_config){
  * @param arquivo_acessos -> nome do arquivo de acessos
  * @return Acessos -> struct com as informações do arquivo de acessos
  */
-Acessos arquivo_acessos(const char *arquivo_acessos){
+Acessos arquivo_acessos(const char *arquivo_acessos, unsigned int total_acessos){
     Acessos ptr;
-    ConfigMemoria CM;
     
-    FILE *arquivo_acessos = fopen("arquivo_acessos.txt", "r");
-    if (arquivo_acessos == NULL) {
+    FILE *file_access = fopen(arquivo_acessos, "r");
+    if (file_access == NULL) {
         perror("ERROR opening File <arquivo_acesso>");
         exit(1);
     }
     // Carrega as informacoes do arquivo para struct:
-   for(int x = 0; x < CM.quant_processos; x++){
-        fscanf(arquivo_acessos, "%d, %u", &ptr.pid[x], &ptr.end_mem_virtual[x]);
+   for(int x = 0; x < total_acessos; x++){
+        fscanf(file_access, "%d, %u", &ptr.pid[x], &ptr.end_mem_virtual[x]);
     }
 
-    fclose(arquivo_acessos);
+    fclose(file_access);
     return ptr;
 }
 
@@ -105,12 +112,12 @@ Acessos arquivo_acessos(const char *arquivo_acessos){
  * @param frames -> número de frames
  * @param CM -> struct de configuração de memória
  */
-Traducao traducao_endereco(unsigned int endereco, unsigned int frames, ConfigMemoria CM){
+Traducao traducao_endereco(unsigned int endereco, ConfigMemoria CM){
     Traducao T;
 
     T.pagina = endereco / CM.tamanho_pag;
     T.deslocamento = endereco % CM.tamanho_pag;
-    T.end_fisico = (frames * CM.tamanho_pag) + T.deslocamento;
+    T.end_fisico = (T.pagina * CM.tamanho_pag) + T.deslocamento;
 
     return T;
 }
@@ -124,52 +131,101 @@ Traducao traducao_endereco(unsigned int endereco, unsigned int frames, ConfigMem
  */
 void tabela_pagina(TabelaPagina TP[],Acessos AC, ConfigMemoria CM){
 
-    // Organizando end_virtual na tabela de páginas:
-    for(int x = 0; x < MAX_PAGES; x++){
-        TP[x].end_virtual = x;
-        TP[x].num_frame = -1;
-        TP[x].valid_bit = 0;
-        TP[x].referenced_bit = 0;
-        TP[x].conteudo[0] = '\0';
+    // Setando a tabela de páginas:
+    for(int y = 0; y < MAX_PAGES; y++){
+        TP[y].end_virtual = y;
+        TP[y].num_frame = -1;
+        TP[y].valid_bit = 0;
+        TP[y].referenced_bit = 0;
     }
 
-    // Preenchendo tabela:
-    for(int y = 0; y <MAX_ACCESS; y++){
-        Traducao T = traducao_endereco(&AC.end_mem_virtual[y], y & CM.num_frames, CM);
+    // Organizando end_virtual na tabela de páginas:
+    for(int x = 0; x < MAX_ACCESS; x++){
+        Traducao T = traducao_endereco(AC.end_mem_virtual[x], CM);
         unsigned int pag_virtual = T.pagina;
 
         TP[pag_virtual].end_virtual = pag_virtual;
-        TP[pag_virtual].num_frame = y & CM.num_frames;
+        TP[pag_virtual].num_frame = x % CM.num_frames;
         TP[pag_virtual].valid_bit = 1;
         TP[pag_virtual].referenced_bit = 1;
-        // Adiciona conteúdo nas paginas:
-        // Formato: Pagina virtual - Frame - Referenced bit - Valid bit
-        snprintf(TP[pag_virtual].conteudo, MAX_PAGES, "Pág.V.: %u F: %u R %u",
-        );
-        
+
     }
 }
 
+// PS: Não terminei essa funcao ainda:
 void PageFaultCorrection(TabelaPagina TP[], unsigned int num_pag, unsigned int pag_virtual){
-    
+    Traducao T;
+
     for(int x = 0; x <num_pag; x++){
-        if(TP[x].valid_bit == 0){
-            if(TP[x].referenced_bit == 0){
-                TP[x].num_frame = pag_virtual;
-                TP[x].valid_bit = 1;
-                TP[x].referenced_bit = 1;
-                return;
-            }
+        if(TP[x].valid_bit == 0 && TP[x].referenced_bit == 0){
+            TP[x].end_virtual = pag_virtual;
+            TP[x].valid_bit = 1;
+            TP[x].referenced_bit = 1;
+            return;
         }
         // Verifica se existe pag_virtual e se bit de validade == 1:
-        if(pag_virtual == pag_virtual && TP[x].valid_bit == 1){
+        if(TP[x].end_virtual == pag_virtual && TP[x].valid_bit == 1){
             TP[x].referenced_bit = 1; // seta bit de referencia -> 1
-            return pag_virtual;
+            return;
         }
         else {
             TP[x].referenced_bit = 0;
         }
     }
+    // Rascunho:
+    /*
+    // Verifica se é HIT
+    for (int i = 0; i < num_frames; i++) {
+        if (TP[i].valid_bit == 1 && TP[i].pagina_virtual == pagina) {
+            TP[i].referenced_bit = 1;
+            printf("HIT: Página %d já está na memória. Deslocamento: %d\n", pagina, deslocamento);
+            return;
+        }
+    }
+
+    // PAGE FAULT
+    printf("PAGE FAULT: Página %d não está na memória.\n", pagina);
+
+    // Verifica se há frame livre
+    for (int i = 0; i < num_frames; i++) {
+        if (memoria[i].ocupado == 0) {
+            memoria[i].ocupado = 1;
+            memoria[i].pagina_virtual = pagina;
+
+            TP[i].pagina_virtual = pagina;
+            TP[i].frame_fisico = i;
+            TP[i].valid_bit = 1;
+            TP[i].referenced_bit = 1;
+            TP[i].tempo_de_entrada = tempo_global++;
+
+            printf("Alocada em frame livre %d.\n", i);
+            return;
+        }
+    }
+
+    // Memória cheia: aplicar substituição FIFO
+    int indice_vitima = 0;
+    int menor_tempo = TP[0].tempo_de_entrada;
+
+    for (int i = 1; i < num_frames; i++) {
+        if (TP[i].tempo_de_entrada < menor_tempo) {
+            menor_tempo = TP[i].tempo_de_entrada;
+            indice_vitima = i;
+        }
+    }
+
+    printf("Substituindo página %d do frame %d.\n", TP[indice_vitima].pagina_virtual, indice_vitima);
+
+    // Substituição
+    memoria[indice_vitima].pagina_virtual = pagina;
+
+    TP[indice_vitima].pagina_virtual = pagina;
+    TP[indice_vitima].frame_fisico = indice_vitima;
+    TP[indice_vitima].valid_bit = 1;
+    TP[indice_vitima].referenced_bit = 1;
+    TP[indice_vitima].tempo_de_entrada = tempo_global++;
+}
+    */
 }
 
 // !!! Não chequei se ta certo essa implementacao ainda:
