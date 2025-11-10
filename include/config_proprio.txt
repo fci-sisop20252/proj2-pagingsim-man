@@ -1,1 +1,4 @@
-
+4      #Número de frames físicos disponiveis
+10     #tamanho de cada página
+1      #Número de processos
+0 100  #PID = 0, Tamanho de memória virtual = 100
