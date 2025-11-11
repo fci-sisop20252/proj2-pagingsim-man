@@ -1,5 +1,6 @@
 #include<stdio.h>
 #include<stdlib.h>
+#include<stdbool.h>
 
 #define MAX_PROCESSOS 64
 #define MAX_ACCESS 128
@@ -18,6 +19,7 @@ typedef struct{
     int pid[MAX_PROCESSOS];
     unsigned int tamanho_mem_virtual[MAX_ACCESS];
 } ConfigMemoria;
+ConfigMemoria CM;
 
 //Struct para acessos:
 typedef struct{
@@ -43,7 +45,7 @@ typedef struct{
 } Traducao;
 
 typedef struct{
-    int ocupied;
+    bool ocupied;
     int pagina_virtual;
 } Frame;
 
@@ -141,6 +143,7 @@ void tabela_pagina(TabelaPagina TP[],Acessos AC, ConfigMemoria CM){
 
     // Organizando end_virtual na tabela de páginas:
     for(int x = 0; x < MAX_ACCESS; x++){
+        // Cenário 1: HIT -> pagina está na memória física
         Traducao T = traducao_endereco(AC.end_mem_virtual[x], CM);
         unsigned int pag_virtual = T.pagina;
 
@@ -149,86 +152,49 @@ void tabela_pagina(TabelaPagina TP[],Acessos AC, ConfigMemoria CM){
         TP[pag_virtual].valid_bit = 1;
         TP[pag_virtual].referenced_bit = 1;
 
+        if(TP[x].valid_bit == 0 && TP[x].referenced_bit == 0){
+            PageFaultCorrection_frame(TP, pag_virtual);
+        }
     }
 }
 
 // PS: Não terminei essa funcao ainda:
-void PageFaultCorrection(TabelaPagina TP[], unsigned int num_pag, unsigned int pag_virtual){
-    Traducao T;
+void PageFaultCorrection_frame(TabelaPagina TP[], unsigned int pag_virtual){
+    //Traducao T;
+    Frame F;
+    ConfigMemoria CM;
+    int frame_free = -1; 
 
-    for(int x = 0; x <num_pag; x++){
-        if(TP[x].valid_bit == 0 && TP[x].referenced_bit == 0){
-            TP[x].end_virtual = pag_virtual;
-            TP[x].valid_bit = 1;
-            TP[x].referenced_bit = 1;
-            return;
-        }
-        // Verifica se existe pag_virtual e se bit de validade == 1:
-        if(TP[x].end_virtual == pag_virtual && TP[x].valid_bit == 1){
-            TP[x].referenced_bit = 1; // seta bit de referencia -> 1
-            return;
-        }
-        else {
-            TP[x].referenced_bit = 0;
-        }
-    }
-    // Rascunho:
-    /*
-    // Verifica se é HIT
-    for (int i = 0; i < num_frames; i++) {
-        if (TP[i].valid_bit == 1 && TP[i].pagina_virtual == pagina) {
-            TP[i].referenced_bit = 1;
-            printf("HIT: Página %d já está na memória. Deslocamento: %d\n", pagina, deslocamento);
-            return;
+    for(int d = 0; d <CM.num_frames; d++){
+        // Caso de se tiver frame livre:
+        if(TP[d].valid_bit == 0){
+            frame_free = d; // Qual frame esta free
+            break;
         }
     }
 
-    // PAGE FAULT
-    printf("PAGE FAULT: Página %d não está na memória.\n", pagina);
+    if(frame_free != -1){
+        TP[frame_free].tempo_entrada = tempo_global_fifo++; // Comeca a contar o tempo para o FIFO
+        TP[frame_free].end_virtual = pag_virtual;
+        TP[frame_free].valid_bit = 1;
+        TP[frame_free].referenced_bit = 1;
+        
+    } else {
+        // Cenário 2: PAGE_FAULT -> Pagina não está na memória física:
+        int least_time = TP[0].tempo_entrada;
+        int pag_victim = 0;
 
-    // Verifica se há frame livre
-    for (int i = 0; i < num_frames; i++) {
-        if (memoria[i].ocupado == 0) {
-            memoria[i].ocupado = 1;
-            memoria[i].pagina_virtual = pagina;
-
-            TP[i].pagina_virtual = pagina;
-            TP[i].frame_fisico = i;
-            TP[i].valid_bit = 1;
-            TP[i].referenced_bit = 1;
-            TP[i].tempo_de_entrada = tempo_global++;
-
-            printf("Alocada em frame livre %d.\n", i);
-            return;
-        }
+        TP[pag_victim].tempo_entrada = tempo_global_fifo++;
+        TP[pag_victim].end_virtual = pag_virtual;
+        TP[pag_victim].valid_bit = 1;
+        TP[pag_victim].referenced_bit = 1;
     }
 
-    // Memória cheia: aplicar substituição FIFO
-    int indice_vitima = 0;
-    int menor_tempo = TP[0].tempo_de_entrada;
-
-    for (int i = 1; i < num_frames; i++) {
-        if (TP[i].tempo_de_entrada < menor_tempo) {
-            menor_tempo = TP[i].tempo_de_entrada;
-            indice_vitima = i;
-        }
-    }
-
-    printf("Substituindo página %d do frame %d.\n", TP[indice_vitima].pagina_virtual, indice_vitima);
-
-    // Substituição
-    memoria[indice_vitima].pagina_virtual = pagina;
-
-    TP[indice_vitima].pagina_virtual = pagina;
-    TP[indice_vitima].frame_fisico = indice_vitima;
-    TP[indice_vitima].valid_bit = 1;
-    TP[indice_vitima].referenced_bit = 1;
-    TP[indice_vitima].tempo_de_entrada = tempo_global++;
 }
-    */
-}
-
-// !!! Não chequei se ta certo essa implementacao ainda:
+//                                       .           
+/**                                     /|\
+ * @brief Falta adaptar !!! <----- !!! /_!_\
+ */
 void algFIFO(AlgFIFO lista[], unsigned int *size_atual, unsigned int new_pag, unsigned int TAM_MEMORIA){
     for(int k = 0; k < *size_atual; k++){
         if(lista[k].pag_virtual == new_pag){
