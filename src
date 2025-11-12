@@ -34,6 +34,7 @@ typedef struct{
     unsigned int num_frame;
     unsigned int valid_bit;
     unsigned int referenced_bit;
+    unsigned int frame;
     int tempo_entrada;
 } TabelaPagina;
 
@@ -125,12 +126,19 @@ Acessos arquivo_acessos(const char *arquivo_acessos){
  * @param frames -> número de frames
  * @param CM -> struct de configuração de memória
  */
-Traducao traducao_endereco(unsigned int endereco, ConfigMemoria CM){
+Traducao traducao_endereco(unsigned int endereco, ConfigMemoria CM, TabelaPagina TP[]){
     Traducao T;
+
 
     T.pagina = endereco / CM.tamanho_pag;
     T.deslocamento = endereco % CM.tamanho_pag;
-    T.end_fisico = (T.pagina * CM.tamanho_pag) + T.deslocamento;
+
+    if(TP[T.pagina].valid_bit == 1){
+        unsigned int frame = TP[T.pagina].frame;
+        T.end_fisico = (T.pagina * CM.tamanho_pag) + T.deslocamento;
+    } else {
+        T.end_fisico = -1;
+    }
 
     return T;
 }
@@ -156,7 +164,7 @@ void tabela_pagina(TabelaPagina TP[],Acessos AC, ConfigMemoria CM){
     // Organizando end_virtual na tabela de páginas:
     for(int x = 0; x < MAX_ACCESS; x++){
         // Cenário 1: HIT -> pagina está na memória física
-        Traducao T = traducao_endereco(AC.end_mem_virtual[x], CM);
+        Traducao T = traducao_endereco(AC.end_mem_virtual[x], CM, TP);
         unsigned int pag_virtual = T.pagina;
 
         TP[pag_virtual].end_virtual = pag_virtual;
