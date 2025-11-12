@@ -23,7 +23,7 @@ ConfigMemoria CM;
 
 //Struct para acessos:
 typedef struct{
-    //unsigned int end_virtual;
+    unsigned int quant_acessos;
     int pid[MAX_ACCESS];
     unsigned int end_mem_virtual[MAX_ACCESS];
 } Acessos;
@@ -66,7 +66,7 @@ int tempo_global_fifo = 0;
 ConfigMemoria arquivo_config(const char *arquivo_config){
     ConfigMemoria ptr;
     
-    FILE *config_file = fopen("arquivo_acessos.txt", "r");
+    FILE *config_file = fopen(arquivo_config, "r");
     // Verificação:
     if (config_file == NULL) {
         perror("ERROR opening File <arquivo_config>");
@@ -75,11 +75,21 @@ ConfigMemoria arquivo_config(const char *arquivo_config){
     
     // Carrega as informacoes do arquivo para struct:
     fscanf(config_file, "%d", &ptr.num_frames);
-    fscanf(config_file, "Tamanho da página: %u", &ptr.tamanho_pag);
+    fscanf(config_file, "%u", &ptr.tamanho_pag);
     fscanf(config_file, "%d", &ptr.quant_processos);
     
-    for(int k = 0; k < ptr.quant_processos; k++){
-        fscanf(config_file, "%d, %u", &ptr.pid[k], &ptr.tamanho_mem_virtual[k]);
+    /* Para debugar:
+    printf("\nQuant. frames: %d", ptr.num_frames);
+    printf("\nTamanho da página: %u", ptr.tamanho_pag);
+    printf("\nProcessos: %d\n", ptr.quant_processos);
+    */
+    
+
+    for (int a = 0; a < ptr.quant_processos && a < MAX_PROCESSOS; a++) {
+        if (fscanf(config_file, "%d %u", &ptr.pid[a], &ptr.tamanho_mem_virtual[a]) != 2) {
+            printf("Erro ao ler processo %d\n", a);
+            break;
+        }
     }
 
     fclose(config_file);
@@ -90,20 +100,21 @@ ConfigMemoria arquivo_config(const char *arquivo_config){
  * @param arquivo_acessos -> nome do arquivo de acessos
  * @return Acessos -> struct com as informações do arquivo de acessos
  */
-Acessos arquivo_acessos(const char *arquivo_acessos, unsigned int total_acessos){
+Acessos arquivo_acessos(const char *arquivo_acessos){
     Acessos ptr;
+    ptr.quant_acessos = 0;
     
-    FILE *file_access = fopen(arquivo_acessos, "r");
-    if (file_access == NULL) {
-        perror("ERROR opening File <arquivo_acesso>");
+    FILE *file = fopen(arquivo_acessos, "r");
+    if (file == NULL) {
+        perror("ERROR opening File <arquivo_acessos>");
         exit(1);
     }
     // Carrega as informacoes do arquivo para struct:
-   for(int x = 0; x < total_acessos; x++){
-        fscanf(file_access, "%d, %u", &ptr.pid[x], &ptr.end_mem_virtual[x]);
+    while (ptr.quant_acessos < MAX_ACCESS && fscanf(file, "%d %u", &ptr.pid[ptr.quant_acessos], &ptr.end_mem_virtual[ptr.quant_acessos]) == 2) {
+        ptr.quant_acessos++;
     }
 
-    fclose(file_access);
+    fclose(file);
     return ptr;
 }
 
@@ -131,6 +142,7 @@ Traducao traducao_endereco(unsigned int endereco, ConfigMemoria CM){
  * @param pag_virtual -> página virtual
  * @return unsigned int -> número do frame correspondente
  */
+
 void tabela_pagina(TabelaPagina TP[],Acessos AC, ConfigMemoria CM){
 
     // Setando a tabela de páginas:
@@ -152,14 +164,15 @@ void tabela_pagina(TabelaPagina TP[],Acessos AC, ConfigMemoria CM){
         TP[pag_virtual].valid_bit = 1;
         TP[pag_virtual].referenced_bit = 1;
 
+        // Cenário 2: página não está na memória física:
         if(TP[x].valid_bit == 0 && TP[x].referenced_bit == 0){
-            PageFaultCorrection_frame(TP, pag_virtual);
+            PageFaultCorrection(TP, pag_virtual);
         }
     }
 }
 
 // PS: Não terminei essa funcao ainda:
-void PageFaultCorrection_frame(TabelaPagina TP[], unsigned int pag_virtual){
+void PageFaultCorrection(TabelaPagina TP[], unsigned int pag_virtual){
     //Traducao T;
     Frame F;
     ConfigMemoria CM;
@@ -181,13 +194,7 @@ void PageFaultCorrection_frame(TabelaPagina TP[], unsigned int pag_virtual){
         
     } else {
         // Cenário 2: PAGE_FAULT -> Pagina não está na memória física:
-        int least_time = TP[0].tempo_entrada;
-        int pag_victim = 0;
-
-        TP[pag_victim].tempo_entrada = tempo_global_fifo++;
-        TP[pag_victim].end_virtual = pag_virtual;
-        TP[pag_victim].valid_bit = 1;
-        TP[pag_victim].referenced_bit = 1;
+        // Continuar FIFO
     }
 
 }
@@ -211,4 +218,22 @@ void algFIFO(AlgFIFO lista[], unsigned int *size_atual, unsigned int new_pag, un
         lista[*size_atual].pag_virtual = new_pag;
         (*size_atual)++;
     }
+}
+
+int main(){
+    ConfigMemoria CM = arquivo_config("arquivo_config.txt");
+    Acessos AC = arquivo_acessos("arquivo_acessos.txt");
+    Traducao T;
+    Frame F;
+
+    printf("Arquivo Config:\n");
+    for(int c = 0; c < CM.quant_processos; c++){
+        printf("PID: %d, Endereço %u, (Página %d, Deslocamento %u) -> HIT: Página %d (PID %d) já está no Frame %d\n", CM.pid[c], AC.end_mem_virtual, T.pagina, T.deslocamento, T.pagina, CM.pid[c], F.frame);
+    }
+
+    printf("Arquivo Acessos:\n");
+    for(int j = 0; j < AC.quant_acessos; j++){
+        printf("PID: %d || Endereço Memória Virtual: %u\n", AC.pid[j], AC.end_mem_virtual[j]);
+    }
+
 }
