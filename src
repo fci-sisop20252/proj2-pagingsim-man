@@ -2,6 +2,7 @@
 #include<stdlib.h>
 #include<stdbool.h>
 #include<time.h>
+#include <string.h>
 
 #define MAX_PROCESSOS 64
 #define MAX_ACCESS 128
@@ -133,20 +134,15 @@ Acessos arquivo_acessos(const char *acessos_1){
  */
 Traducao traducao_endereco(unsigned int endereco, ConfigMemoria CM, TabelaPagina TP[]){
     Traducao T;
-    /*for (int i = 0; i < MAX_PAGES; i++){
-        TP[i].valid_bit = 0;
-        TP[i].num_frame = -1;
-    }*/
-
 
     T.pagina = endereco / CM.tamanho_pag;
     T.deslocamento = endereco % CM.tamanho_pag;
 
     if(TP[T.pagina].valid_bit == 1){
-        unsigned int frame = TP[T.pagina].frame;
+        unsigned int frame = TP[T.pagina].num_frame;
         T.end_fisico = (T.pagina * CM.tamanho_pag) + T.deslocamento;
     } else {
-        T.end_fisico = -1;
+        T.end_fisico = (unsigned int)-1;
     }
 
     return T;
@@ -223,7 +219,8 @@ unsigned int algCLOCK(TabelaPagina TP[], unsigned int num_frames){
  * 
  * @return Tabela atualizada com a página em novo frame
  */
-void PageFaultCorrection(TabelaPagina TP[], ConfigMemoria CM, int pag_virtual){
+void PageFaultCorrection(TabelaPagina TP[], ConfigMemoria CM, int pag_virtual, const char *algoritmo){
+
     int frame_free = -1; 
 
     for(int d = 0; d < CM.num_frames; d++){
@@ -243,18 +240,29 @@ void PageFaultCorrection(TabelaPagina TP[], ConfigMemoria CM, int pag_virtual){
         return;
         
     } else {
+        int eliminate_page = -1;
         // Cenário 2: PAGE_FAULT -> Pagina não está na memória física:
-        int eliminate_page_FIFO = algFIFO(TP, CM.num_frames);
-        double maior_tempo_FIFO = (double)(clock() - TP[eliminate_page_FIFO].loaded_time) / CLOCKS_PER_SEC;
+        if (strcmp(algoritmo, "fifo") == 0) {
+            eliminate_page = algFIFO(TP, CM.num_frames);
+        } else if (strcmp(algoritmo, "clock") == 0) {
+            eliminate_page = algCLOCK(TP, CM.num_frames);
+        } else {
+            printf("Algoritmo desconhecido: %s\n", algoritmo);
+            exit(1);
+        }
+
+        int chosen_frame = TP[eliminate_page].num_frame;
+        double maior_tempo_FIFO = (double)(clock() - TP[eliminate_page].loaded_time) / CLOCKS_PER_SEC;
+
         // Zerando os bits (retirada de páginas):
-        TP[eliminate_page_FIFO].valid_bit = 0;
-        TP[eliminate_page_FIFO].referenced_bit = 0;
-        TP[eliminate_page_FIFO].num_frame = -1;
+        TP[eliminate_page].valid_bit = 0;
+        TP[eliminate_page].referenced_bit = 0;
+        TP[eliminate_page].num_frame = -1;
 
         // Recolocando na table de paginas:
         TP[pag_virtual].loaded_time = clock();
         TP[pag_virtual].end_virtual = pag_virtual; // Atualizando pagina
-        TP[pag_virtual].num_frame = eliminate_page_FIFO;
+        TP[pag_virtual].num_frame = chosen_frame;
         TP[pag_virtual].valid_bit = 1;
         TP[pag_virtual].referenced_bit = 1;
     }
@@ -268,7 +276,7 @@ void PageFaultCorrection(TabelaPagina TP[], ConfigMemoria CM, int pag_virtual){
  * @return unsigned int -> número do frame correspondente
  */
 
-void tabela_pagina(TabelaPagina TP[],Acessos AC, ConfigMemoria CM, FormatoSaida FS[], int *total_access, int *total_PAGEFAULTS){
+void tabela_pagina(TabelaPagina TP[],Acessos AC, ConfigMemoria CM, FormatoSaida FS[], int *total_access, int *total_PAGEFAULTS, const char *algoritmo){
     // Setando a tabela de páginas:
     for(int y = 0; y < MAX_PAGES; y++){
         TP[y].end_virtual = y;
@@ -292,13 +300,16 @@ void tabela_pagina(TabelaPagina TP[],Acessos AC, ConfigMemoria CM, FormatoSaida 
         // Cenário 1: HIT -> pagina está na memória física
         if(frame != -1){
             TP[x].referenced_bit = 1;
+            FS[x].hit = 1;
             FS[x].pagina = pag_virtual;
             FS[x].frame = frame;
-            FS[x].hit = 1;
+            FS[x].removed_frame = -1;
+            FS[x].removed_pag = -1;
+            FS[x].removed_pid = -1;
         } else {
             // Cenário 2: página não está na memória física:
             (*total_PAGEFAULTS)++;
-            PageFaultCorrection(TP, CM, pag_virtual);
+            PageFaultCorrection(TP, CM, pag_virtual, algoritmo);
             /*
             TP[pag_virtual].loaded_time = clock();
             FS[x].pagina = pag_virtual;
@@ -322,7 +333,7 @@ void OUTPUT(TabelaPagina TP[], ConfigMemoria CM, FormatoSaida FS[], Acessos acce
     } else {
         printf("Acesso: PID %u, Endereço %u (Página %u, Deslocamento %u) -> "
            "PAGE FAULT -> Memória cheia. Página %u (PID %u) (Frame %u) será desalocada. -> Página %u alocada no Frame %u\n", pid, endereco, pagina, deslocamento, FS[idx_acesso].removed_pag, FS[idx_acesso].removed_pid, FS[idx_acesso].removed_frame, pagina, FS[idx_acesso].frame);
-    }
+    }       
 }
 
 int main(int argc, char *argv[]){
@@ -342,7 +353,7 @@ int main(int argc, char *argv[]){
     
     int total_access = 0;
     int total_PAGEFAULTS = 0; 
-    tabela_pagina(TP, AC, CM, FS, &total_access, &total_PAGEFAULTS);
+    tabela_pagina(TP, AC, CM, FS, &total_access, &total_PAGEFAULTS, algoritmo);
 
     for(int t = 0; t < AC.quant_acessos; t++){
         unsigned int addr = AC.end_mem_virtual[t];
