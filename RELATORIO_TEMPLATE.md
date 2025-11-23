@@ -6,10 +6,11 @@
 
 ## Integrantes do Grupo
 
-- Nome Completo - Matrícula
-- Nome Completo - Matrícula
-- Nome Completo - Matrícula
-- Nome Completo - Matrícula
+- Andre Doerner Duarte – 10427938
+
+- Matheus Leonardo Cardoso Kroeff – 10426434
+
+- Naoto Ushizaki – 10437445
 
 ---
 
@@ -58,21 +59,43 @@ Descreva as estruturas de dados que você escolheu para representar:
 - Como organizou para múltiplos processos?
 - **Justificativa:** Por que escolheu essa abordagem?
 
+### **Respostas(na ordem):**
+- array fixo de 1024 entradas (TabelaPagina TP[MAX_PAGES]).
+- Para cada página são armazenados: end_virtual, num_frame (frame físico que contém a página), valid_bit, referenced_bit e loaded_time (usado pelo FIFO).
+- Após a leitura dos dados dos arquivos Config e Acessos foram realizados, estes dados foram inseridos em arrays em structs criados no início do código. Em seguida foi montada uma tabela de páginas que armazena a página virtual, frame físico, pid da página, valid bit, referenced bit e tempo de carregamento(para o FIFO).
+- Simples, eficiente e de acesso direto por índice; Fácil de manipular para os algoritmos FIFO e Clock;
+---
 **Frames Físicos:**
 - Como representou os frames da memória física?
 - Quais informações armazena para cada frame?
 - Como rastreia frames livres vs ocupados?
 - **Justificativa:** Por que escolheu essa abordagem?
-
+### **Respostas(na ordem):**
+-
+- Seu número e se está ocupado.
+- Através de 2 loops criados na função PageFaultCorrection, onde o primeiro loop percorre os frames e o segundo checa se o frame atual escolhido existe (valid bit = 1 e num do frame == frame) e se existir é porque está ocupada. Caso contrário, este frame está livre.
+- Essa abordagem é simples e evita criar uma estrutura duplicada (como Frame frames[]). Além de ser adequado para simuladores, reduz a complexidade e evita inconsistência entre dados.
+--- 
 **Estrutura para FIFO:**
 - Como mantém a ordem de chegada das páginas?
 - Como identifica a página mais antiga?
 - **Justificativa:** Por que escolheu essa abordagem?
+- 
+### **Respostas(na ordem):**
+- Cada página recebe um carimbo de tempo (loaded_time = clock()) no momento em que é carregada na memória física.
+- Percorre TODAS as páginas válidas e escolhe aquela com valid_bit = 1 e menor loaded_time. Essa seria a página que tinha entrado primeiro.
+- Usar o tempo como métrica (clock()), não é necessário usar fila, contador ou lista encadeada.
+--- 
 
 **Estrutura para Clock:**
 - Como implementou o ponteiro circular?
 - Como armazena e atualiza os R-bits?
 - **Justificativa:** Por que escolheu essa abordagem?
+### **Respostas(na ordem):**
+- Inicialmente foi criado um static unsigned int ponteiro, que inicia em 0 e é incrementado em ciclos (ponteiro + 1) % num_frames.
+- Cada página possui seu próprio referenced bit. Portanto o fluxo foi: Toda vez que for um HIT (referenced bit = 1), o algortimo seta esse bit como 0 (Second Chance). Caso encontre um bit = 0, escolhe essa página como vítima.
+- Além de deixax o código mais claro, é simples enxergar o que está acontecendo, simples encontrar erros e ajustar o ponteiro, e as estruturas ficam independentes umas das outras, o que evita confusão na hora de atualizar R-bits e frames. Isso tudo torna o algoritmo confiável e fácil de manter.
+--- 
 
 ### 2.2 Organização do Código
 
