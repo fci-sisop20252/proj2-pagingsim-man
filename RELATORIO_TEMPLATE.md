@@ -22,7 +22,9 @@ Descreva EXATAMENTE como compilar seu projeto. Inclua todos os comandos necessá
 
 **Exemplo:**
 ```bash
-gcc -o simulador simulador.c
+1: cd src
+2: gcc -g ProjetoPaginacao.c -o simulador
+ 
 ```
 
 ou
@@ -37,12 +39,13 @@ Forneça exemplos completos de como executar o simulador.
 
 **Exemplo com FIFO:**
 ```bash
-./simulador fifo tests/config_1.txt tests/acessos_1.txt
+./simulador fifo ../tests/config_1.txt ../tests/acessos_1.txt > output.txt
 ```
+Dessa forma é possível compilar o arquivo, pegar os casos testes do diretório tests e escrever seu resultado no arquivo output.txt
 
 **Exemplo com Clock:**
 ```bash
-./simulador clock tests/config_1.txt tests/acessos_1.txt
+./simulador clock ../tests/config_1.txt ../tests/acessos_1.txt > output.txt
 ```
 
 ---
@@ -71,7 +74,6 @@ Descreva as estruturas de dados que você escolheu para representar:
 - Como rastreia frames livres vs ocupados?
 - **Justificativa:** Por que escolheu essa abordagem?
 ### **Respostas(na ordem):**
--
 - Seu número e se está ocupado.
 - Através de 2 loops criados na função PageFaultCorrection, onde o primeiro loop percorre os frames e o segundo checa se o frame atual escolhido existe (valid bit = 1 e num do frame == frame) e se existir é porque está ocupada. Caso contrário, este frame está livre.
 - Essa abordagem é simples e evita criar uma estrutura duplicada (como Frame frames[]). Além de ser adequado para simuladores, reduz a complexidade e evita inconsistência entre dados.
@@ -80,7 +82,7 @@ Descreva as estruturas de dados que você escolheu para representar:
 - Como mantém a ordem de chegada das páginas?
 - Como identifica a página mais antiga?
 - **Justificativa:** Por que escolheu essa abordagem?
-- 
+
 ### **Respostas(na ordem):**
 - Cada página recebe um carimbo de tempo (loaded_time = clock()) no momento em que é carregada na memória física.
 - Percorre TODAS as páginas válidas e escolhe aquela com valid_bit = 1 e menor loaded_time. Essa seria a página que tinha entrado primeiro.
@@ -105,6 +107,10 @@ Descreva como organizou seu código:
 - Qual a responsabilidade de cada arquivo/módulo?
 - Quais são as principais funções e o que cada uma faz?
 
+### **Respostas(na ordem):**
+- 
+---
+
 **Exemplo:**
 ```
 simulador.c
@@ -126,7 +132,10 @@ Explique **como** implementou a lógica FIFO:
 - Como seleciona a página vítima?
 - Quais passos executa ao substituir uma página?
 
-**Não cole código aqui.** Explique a lógica em linguagem natural.
+### **Respostas(na ordem):**
+- 
+---
+
 
 ### 2.4 Algoritmo Clock
 
@@ -136,8 +145,10 @@ Explique **como** implementou a lógica Clock:
 - Como implementou a "segunda chance"?
 - Como trata o caso onde todas as páginas têm R=1?
 - Como garante que o R-bit é setado em todo acesso?
+### **Respostas(na ordem):**
+- 
+---
 
-**Não cole código aqui.** Explique a lógica em linguagem natural.
 
 ### 2.5 Tratamento de Page Fault
 
@@ -146,12 +157,15 @@ Explique como seu código distingue e trata os dois cenários:
 **Cenário 1: Frame livre disponível**
 - Como identifica que há frame livre?
 - Quais passos executa para alocar a página?
-
+### **Respostas(na ordem):**
+- 
+---
 **Cenário 2: Memória cheia (substituição)**
 - Como identifica que a memória está cheia?
 - Como decide qual algoritmo usar (FIFO vs Clock)?
 - Quais passos executa para substituir uma página?
-
+### **Respostas(na ordem):**
+- 
 ---
 
 ## 3. Análise Comparativa FIFO vs Clock
@@ -172,20 +186,30 @@ Preencha a tabela abaixo com os resultados de pelo menos 3 testes diferentes:
 Com base nos resultados acima, responda:
 
 1. **Qual algoritmo teve melhor desempenho (menos page faults)?**
-
+### **Resposta:**
+ 
+---
 2. **Por que você acha que isso aconteceu?** Considere:
    - Como cada algoritmo escolhe a vítima
    - O papel do R-bit no Clock
    - O padrão de acesso dos testes
+### **Respostas(na ordem):**
+- 
+---
 
 3. **Em que situações Clock é melhor que FIFO?**
    - Dê exemplos de padrões de acesso onde Clock se beneficia
-
+### **Resposta:**
+ 
+---
 4. **Houve casos onde FIFO e Clock tiveram o mesmo resultado?**
    - Por que isso aconteceu?
-
+### **Resposta:**
+ 
+---
 5. **Qual algoritmo você escolheria para um sistema real e por quê?**
-
+### **Resposta:**
+ 
 ---
 
 ## 4. Desafios e Aprendizados
