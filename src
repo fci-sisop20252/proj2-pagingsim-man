@@ -215,10 +215,11 @@ unsigned int algCLOCK(TabelaPagina TP[], unsigned int num_frames) {
  * 
  * @return Tabela atualizada com a página em novo frame
  */
-void PageFaultCorrection(TabelaPagina TP[], ConfigMemoria CM, int pag_virtual, int pid_atual, const char *algoritmo, int *removed_page, int *removed_frame, int *pid_removido){
+void PageFaultCorrection(TabelaPagina TP[], ConfigMemoria CM, int pag_virtual, int pid_atual, const char *algoritmo){//int *removed_page, int *removed_frame, int *pid_removido){
+    /*
     *removed_page = -1;
     *removed_frame = -1;
-    *pid_removido = -1;
+    *pid_removido = -1;*/
     int frame_free = -1; 
 
     // Cenário de procura por um frame livre primeiro:
@@ -263,9 +264,10 @@ void PageFaultCorrection(TabelaPagina TP[], ConfigMemoria CM, int pag_virtual, i
         double maior_tempo_FIFO = (double)(clock() - TP[eliminate_page].loaded_time) / CLOCKS_PER_SEC;
         
         // Atualizando ponteiros:
+        /*
         *removed_page = eliminate_page;
         *removed_frame = chosen_frame;
-        *pid_removido = pid_victim;
+        *pid_removido = pid_victim;*/
 
         // Zerando os bits (retirada de páginas):
         TP[eliminate_page].valid_bit = 0;
@@ -324,14 +326,14 @@ void tabela_pagina(TabelaPagina TP[], Acessos AC, ConfigMemoria CM, FormatoSaida
         } else {
             // Cenário 2: página não está na memória física:
             (*total_PAGEFAULTS)++;
-            int removed_page, removed_frame, pid_removido;
-            PageFaultCorrection(TP, CM, pag_virtual, AC.pid[x], algoritmo, &removed_page, &removed_frame, &pid_removido);
+            //int removed_page, removed_frame, pid_removido;
+            PageFaultCorrection(TP, CM, pag_virtual, AC.pid[x], algoritmo); //&removed_page, &removed_frame, &pid_removido);
             FS[x].hit = 0;
             FS[x].pagina = pag_virtual;
             FS[x].frame = TP[pag_virtual].num_frame;
-            FS[x].removed_pagina = removed_page;
-            FS[x].removed_frame = removed_frame;
-            FS[x].removed_pid = pid_removido;
+            FS[x].removed_pagina = TP[pag_virtual].end_virtual;
+            FS[x].removed_frame = TP[pag_virtual].num_frame;
+            FS[x].removed_pid = TP[pag_virtual].pid;
 
         }
     }
@@ -346,7 +348,7 @@ void OUTPUT(TabelaPagina TP[], ConfigMemoria CM, FormatoSaida FS[], Acessos acce
            "HIT: Página %u (PID %u) já está no Frame %u\n", pid, endereco, pagina, deslocamento, pagina, pid, frame);
     } else {
         printf("Acesso: PID %u, Endereço %u (Página %u, Deslocamento %u) -> "
-           "PAGE FAULT -> Memória cheia. Página %d (PID %d) (Frame %d) será desalocada. -> Página %u alocada no Frame %u\n", pid, endereco, pagina, deslocamento, FS[idx_acesso].removed_pagina, FS[idx_acesso].removed_pid, FS[idx_acesso].removed_frame, pagina, FS[idx_acesso].frame);
+           "PAGE FAULT -> Página %u (PID %u) alocada no Frame %u\n", pid, endereco, pagina, deslocamento, pagina, pid, FS[idx_acesso].frame);
     }       
 }
 
