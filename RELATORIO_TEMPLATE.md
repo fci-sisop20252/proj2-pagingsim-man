@@ -67,7 +67,7 @@ Descreva as estruturas de dados que você escolheu para representar:
 - Como rastreia frames livres vs ocupados?
 - **Justificativa:** Por que escolheu essa abordagem?
 ### **Respostas(na ordem):**
-- Seu número e se está ocupado.
+- Como uma variável que recebe o número do frame em que a página é alocada (info na struct).
 - Através de 2 loops criados na função PageFaultCorrection, onde o primeiro loop percorre os frames e o segundo checa se o frame atual escolhido existe (valid bit = 1 e num do frame == frame) e se existir é porque está ocupada. Caso contrário, este frame está livre.
 - Essa abordagem é simples e evita criar uma estrutura duplicada (como Frame frames[]). Além de ser adequado para simuladores, reduz a complexidade e evita inconsistência entre dados.
 --- 
@@ -102,7 +102,13 @@ Descreva como organizou seu código:
 
 ### **Respostas(na ordem):**
 - 5 Arquivos C e 5 arquivos H foram criados.
-- A responsabilidade do arquivo 'arquivo.c'
+- Responsabilidades:
+- arquivo.c -> Leitura de arquivos e armazena as informações nas structs
+- algortimos.c -> Guarda as funções dos algoritmos de substituição
+- tlb.c -> Essencial para traduzir os processos, tratar Page Fault e criar a Tabela de Páginas
+- saida.c -> Possui a saída desejada para visualizar o procedimento de acesso das páginas para os frames
+- main.c -> Realiza a leitura do comando, verifica qual algoritmo executar, qual arquivo de configuraçao e de acesso ele deve ler e chamar as funções corretas para a realização da Paginação
+- Arquivos do tipo h  -> representam os headers dos arquivos C. 
 ---
 
 Estrutura tree:
@@ -179,7 +185,7 @@ Preencha a tabela abaixo com os resultados de pelo menos 3 testes diferentes:
 Com base nos resultados acima, responda:
 
 1. **Qual algoritmo teve melhor desempenho (menos page faults)?**
-### **Resposta:**
+### **Resposta:** Em geral, o algoritmo Clock foi o que demonstrou ter melhor desempenho. 
  
 ---
 2. **Por que você acha que isso aconteceu?** Considere:
@@ -187,22 +193,22 @@ Com base nos resultados acima, responda:
    - O papel do R-bit no Clock
    - O padrão de acesso dos testes
 ### **Respostas(na ordem):**
-- 
+- Isso aconteceu pois, o algoritmo FIFO escolhe a página mais antiga na memória, sem considerar se ela foi usada recentemente. Isso pode levar à substituição de páginas que ainda estão sendo acessadas com frequência, resultando em mais page faults. Já o algoritmo Clock simula uma segunda chance: ele percorre as páginas em ordem circular e só substitui aquelas cujo bit de referência (R-bit) está desligado, ou seja, que não foram usadas recentemente. Isso torna a escolha da vítima mais inteligente e adaptada ao padrão de uso.
 ---
 
 3. **Em que situações Clock é melhor que FIFO?**
    - Dê exemplos de padrões de acesso onde Clock se beneficia
 ### **Resposta:**
- 
+ Em situações em que vários processos competem pelo mesmo frame e em uma situação em que processos acessam repetidamente as mesmas páginas.
 ---
 4. **Houve casos onde FIFO e Clock tiveram o mesmo resultado?**
    - Por que isso aconteceu?
 ### **Resposta:**
- 
+ Em alguns casos sim, pois ainda existiam frames livres (memória livre) e é possível que os 2 algoritmos acabem desalocando as páginas na mesma ordem.
 ---
 5. **Qual algoritmo você escolheria para um sistema real e por quê?**
 ### **Resposta:**
- 
+ O algoritmo seria o Clock, pois além de ser vantajoso para sistemas que possuem quantidades imensas de processos e com padrões de acesso complexos, em que a reutilização de páginas é frequente. Este algoritmo equilibra simplicidade, eficiência e escalabilidade.
 ---
 
 ## 4. Desafios e Aprendizados
@@ -233,12 +239,11 @@ Descreva o principal aprendizado sobre gerenciamento de memória que vocês tive
    ### **Resposta:** Que conceito das aulas ficou mais claro após a implementação?
  Principalmente o conceito de tabela de páginas era algo que nos confundia bastante. Agora ficou um pouco mais claro!
 
-
 ---
 
 ## 5. Vídeo de Demonstração
 
-**Link do vídeo:** [Insira aqui o link para YouTube, Google Drive, etc.]
+**Link do vídeo:** (https://youtu.be/WG3ok2lKvRg)
 
 ### Conteúdo do vídeo:
 
