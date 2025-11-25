@@ -32,13 +32,13 @@ Forneça exemplos completos de como executar o simulador.
 
 **Exemplo com FIFO:**
 ```bash
-./main fifo tests/config_1.txt tests/acessos_1.txt >> src/output.txt
+./main fifo tests/config_1.txt tests/acessos_1.txt > src/output.txt
 ```
 Dessa forma é possível compilar o arquivo, pegar os casos testes do diretório tests e escrever seu resultado no arquivo output.txt
 
 **Exemplo com Clock:**
 ```bash
-./main clock tests/config_1.txt tests/acessos_1.txt >> src/output.txt
+./main clock tests/config_1.txt tests/acessos_1.txt > src/output.txt
 ```
 
 ---
