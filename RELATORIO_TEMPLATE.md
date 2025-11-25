@@ -22,15 +22,8 @@ Descreva EXATAMENTE como compilar seu projeto. Inclua todos os comandos necessá
 
 **Exemplo:**
 ```bash
-1: cd src
-2: gcc -g ProjetoPaginacao.c -o simulador
+1: gcc -Wall -Wextra -Iinclude src/*.c -o main
  
-```
-
-ou
-
-```bash
-make
 ```
 
 ### 1.2 Execução
@@ -45,7 +38,7 @@ Dessa forma é possível compilar o arquivo, pegar os casos testes do diretório
 
 **Exemplo com Clock:**
 ```bash
-./simulador clock ../tests/config_1.txt ../tests/acessos_1.txt > output.txt
+./main fifo tests/config_1.txt tests/acessos_1.txt >> src/output.txt
 ```
 
 ---
