@@ -108,21 +108,14 @@ Descreva como organizou seu código:
 - Quais são as principais funções e o que cada uma faz?
 
 ### **Respostas(na ordem):**
-- 
+- 5 Arquivos C e 5 arquivos H foram criados.
+- A responsabilidade do arquivo 'arquivo.c'
 ---
 
-**Exemplo:**
-```
-simulador.c
-├── main() - lê argumentos e coordena execução
-├── ler_config() - processa arquivo de configuração
-├── processar_acessos() - loop principal de simulação
-├── traduzir_endereco() - calcula página e deslocamento
-├── consultar_tabela() - verifica se página está na memória
-├── tratar_page_fault() - lida com page faults
-├── algoritmo_fifo() - seleciona vítima usando FIFO
-└── algoritmo_clock() - seleciona vítima usando Clock
-```
+Estrutura tree:
+
+<img width="214" height="260" alt="image" src="https://github.com/user-attachments/assets/15ccaf3e-632d-4143-ae7b-3eb1bfec3ffc" />
+
 
 ### 2.3 Algoritmo FIFO
 
@@ -148,7 +141,10 @@ Explique **como** implementou a lógica Clock:
 - Como trata o caso onde todas as páginas têm R=1?
 - Como garante que o R-bit é setado em todo acesso?
 ### **Respostas(na ordem):**
-- O ponteiro ciruclar é gerenciado da seguinte maneira: Ela inicia com 0 e a cada iteração ela avanca somando 1 nela mesma e divide pelo número de frames. E por fim, pega-se o resultado do resto desta conta, dando um ciclo circular com o ponteiro.
+- O ponteiro circular é gerenciado da seguinte maneira: Ela inicia com 0 e a cada iteração ela avanca somando 1 nela mesma e divide pelo número de frames. E por fim, pega-se o resultado do resto desta conta, dando um ciclo com o ponteiro.
+- Em um loop, o algoritmo verifica se o bit de referência é 0 e caso for verdadeiro, a vítima será nesse índice que atualmente o sistema está. O ponteiro realiza o ciclo e retorna a vítima. Caso contrário, zera esse bit.
+- O algoritmo percorre todas as páginas dando segunda chance e zerando o R-bit daquelas com R=1, completa uma volta deixando todas com R=0 e, na volta seguinte, escolhe como vítima a primeira página encontrada com R=0. Isso é possível, pelo while(1) do algoritmo.
+- Na tradução de endereços (função) quando ele recebe as páginas, ele as vasculha todo valid_bit lido da tabela de página for 1, o bit de referência também será 1; 
 ---
 
 
@@ -160,14 +156,16 @@ Explique como seu código distingue e trata os dois cenários:
 - Como identifica que há frame livre?
 - Quais passos executa para alocar a página?
 ### **Respostas(na ordem):**
-- 
+- É criado uma variável de verificação de se frame está ocupado ou não. Dois loops são criados para percorrer todos os frames e ver o seu valid_bit e seu número. Caso o bit == 1, a variável de verificação vale 1. E caso essa variável tenha qualquer valor, tirando o 1, o frame livre estará no índice em que o loop parou.
+- Na atualização da tabela de página no próprio PageFaultCorrection, um if é criado que se frame livre for diferente de -1 (existe), ele atualiza os metadados da página (número da página, endereço virtual e pid) incluindo colocando a página nova no frame livre e seta os bits para 1. As informações são todas contidas nas struct TP.
 ---
 **Cenário 2: Memória cheia (substituição)**
 - Como identifica que a memória está cheia?
 - Como decide qual algoritmo usar (FIFO vs Clock)?
 - Quais passos executa para substituir uma página?
 ### **Respostas(na ordem):**
-- 
+- No momento em que o sistema percorre todos os frames (verifica os valid_bit) e conclui que nenhum frame está desocupado, chega na conclusão de que a memória cheia.
+- Inicialmente, é incluído a biblioteca 'string.h'. No main, ele recebe o comando e compara se no índice escolhido está escrito 'fifo' ou 'clock'. E quando uma delas forem reconhecidas, o algortimo respectivo será implementado. Essas funções retornam o número da página vítima que deve ser removida. E, qualquer outro valor aborta o programa.
 ---
 
 ## 3. Análise Comparativa FIFO vs Clock
@@ -178,10 +176,10 @@ Preencha a tabela abaixo com os resultados de pelo menos 3 testes diferentes:
 
 | Descrição do Teste | Total de Acessos | Page Faults FIFO | Page Faults Clock | Diferença |
 |-------------------|------------------|------------------|-------------------|-----------|
-| Teste 1 - Básico  |                  |                  |                   |           |
-| Teste 2 - Memória Pequena |          |                  |                   |           |
-| Teste 3 - Simples |                  |                  |                   |           |
-| Teste Próprio 1   |                  |                  |                   |           |
+| Teste 1 - Básico  |       8          |       5          |        5          |     0     |
+| Teste 2 - Memória Pequena | 10       |       3          |        3          |     0     |
+| Teste 3 - Simples |        7         |       4          |        4          |     0     |
+| Teste Próprio 1   |       11         |       9          |        9          |     0     |
 
 ### 3.2 Análise
 
@@ -221,17 +219,27 @@ Com base nos resultados acima, responda:
 Descreva o maior desafio técnico que seu grupo enfrentou durante a implementação:
 
 - Qual foi o problema?
+  ### **Resposta:** O maior desafio foi fazer a função de correção de page fault funcionar corretamente. No início, algumas páginas não eram removidas direito e acabavam com frames marcados como ocupados por mais de uma página, ou páginas inválidas ainda apareciam como válidas
 - Como identificaram o problema?
+  ### **Resposta:** Percebemos o problema rodando os testes e vendo que os algoritmos FIFO e CLOCK escolhiam páginas “erradas” ou repetidas. Logo o erro estava na atualização dos bits da tabela e não no algoritmo em si
 - Como resolveram?
+  ### **Resposta:** Resolvemos reorganizando a lógica da função. Primeiro limpando corretamente a página vítima e só depois carregando a nova página. Também adicionamos uma busca por frame livre antes de chamar o algoritmo de substituição
 - O que aprenderam com isso?
+  ### **Resposta:** Aprendemos que quando gerenciamos memória tudo é mais sensível do que parece, e que quem programou esses algorítimos nos SOs de verdade realmente merece os parabéns.
 
 ### 4.2 Principal Aprendizado
 
 Descreva o principal aprendizado sobre gerenciamento de memória que vocês tiveram com este projeto:
 
 - O que vocês não entendiam bem antes e agora entendem?
+   ### **Resposta:** Como é na prática o funcionamento da memória virtual. Antes do projeto, a gente sabia a teoria passada em aula, mas não entendia bem como os bits (valid, referenced, frame, tempo) eram realmente usados, nem como os algorítimos de FIFO e CLOCK realmente rodavam.
 - Como este projeto mudou sua compreensão de memória virtual?
+   ### **Resposta:** Como este projeto mudou sua compreensão de memória virtual?
+ Não tinhamos a idéia da real complexidade e quantidade de abstrações nescessárias que um processo precisa para acessar e manipular memória. Algo que parece tão simples como declarar uma variavel com 'int main' ou usando 'malloc' esconde processos MUITO mais interessantes!
 - Que conceito das aulas ficou mais claro após a implementação?
+   ### **Resposta:** Que conceito das aulas ficou mais claro após a implementação?
+ Principalmente o conceito de tabela de páginas era algo que nos confundia bastante. Agora ficou um pouco mais claro!
+
 
 ---
 
@@ -243,12 +251,12 @@ Descreva o principal aprendizado sobre gerenciamento de memória que vocês tive
 
 Confirme que o vídeo contém:
 
-- [ ] Demonstração da compilação do projeto
-- [ ] Execução do simulador com algoritmo FIFO
-- [ ] Execução do simulador com algoritmo Clock
-- [ ] Explicação da saída produzida
-- [ ] Comparação dos resultados FIFO vs Clock
-- [ ] Breve explicação de uma decisão de design importante
+- [ ✅ ] Demonstração da compilação do projeto
+- [ ✅ ] Execução do simulador com algoritmo FIFO
+- [ ✅ ] Execução do simulador com algoritmo Clock
+- [ ✅ ] Explicação da saída produzida
+- [ ✅ ] Comparação dos resultados FIFO vs Clock
+- [ ✅ ] Breve explicação de uma decisão de design importante
 
 ---
 
@@ -256,25 +264,24 @@ Confirme que o vídeo contém:
 
 Antes de submeter, verifique:
 
-- [ ] Código compila sem erros conforme instruções da seção 1.1
-- [ ] Simulador funciona corretamente com FIFO
-- [ ] Simulador funciona corretamente com Clock
-- [ ] Formato de saída segue EXATAMENTE a especificação do ENUNCIADO.md
-- [ ] Testamos com os casos fornecidos em tests/
-- [ ] Todas as seções deste relatório foram preenchidas
-- [ ] Análise comparativa foi realizada com dados reais
-- [ ] Vídeo de demonstração foi gravado e link está funcionando
-- [ ] Todos os integrantes participaram e concordam com a submissão
+- [ ✅ ] Código compila sem erros conforme instruções da seção 1.1
+- [ ✅ ] Simulador funciona corretamente com FIFO
+- [ ✅ ] Simulador funciona corretamente com Clock
+- [ ✅ ] Formato de saída segue EXATAMENTE a especificação do ENUNCIADO.md
+- [ ✅ ] Testamos com os casos fornecidos em tests/
+- [ ✅ ] Todas as seções deste relatório foram preenchidas
+- [ ✅ ] Análise comparativa foi realizada com dados reais
+- [ ✅ ] Vídeo de demonstração foi gravado e link está funcionando
+- [ ✅ ] Todos os integrantes participaram e concordam com a submissão
 
 ---
 ## Referências
-Liste aqui quaisquer referências que utilizaram para auxiliar na implementação (livros, artigos, sites, **links para conversas com IAs.**)
+W3Schools – snprintf W3SCHOOLS. C Library – snprintf() function. Disponível em: <https://www.w3schools.com/c/ref_stdio_snprintf.php>. Acesso em: 24 nov. 2025.
 
+Microsoft Learn – clock MICROSOFT. Função clock – Biblioteca de tempo de execução C. Disponível em: <https://learn.microsoft.com/pt-br/cpp/c-runtime-library/reference/clock?view=msvc-170>. Acesso em: 24 nov. 2025.
 
 ---
 
 ## Comentários Finais
-
-Use este espaço para quaisquer observações adicionais que julguem relevantes (opcional).
 
 ---
