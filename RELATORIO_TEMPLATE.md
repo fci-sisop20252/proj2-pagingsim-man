@@ -133,7 +133,9 @@ Explique **como** implementou a lógica FIFO:
 - Quais passos executa ao substituir uma página?
 
 ### **Respostas(na ordem):**
-- 
+- O controle de ordem chegada é mantida por um campo de registro de tempo de chegada da página (Como o TP[pagina].loaded_time = clock()).
+- A página vítima é selecionada a página que tiver o menor 'loaded_time' entre todas (mais antiga).
+- O algoritmo retorna a página vítima, busca-se em que frame ela está na tabela de página e depois ela é invalidada. Em seguida, a nova página é carregada no lugar dessa página vítima e marca o tempo que ela entrou.
 ---
 
 
@@ -146,7 +148,7 @@ Explique **como** implementou a lógica Clock:
 - Como trata o caso onde todas as páginas têm R=1?
 - Como garante que o R-bit é setado em todo acesso?
 ### **Respostas(na ordem):**
-- 
+- O ponteiro ciruclar é gerenciado da seguinte maneira: Ela inicia com 0 e a cada iteração ela avanca somando 1 nela mesma e divide pelo número de frames. E por fim, pega-se o resultado do resto desta conta, dando um ciclo circular com o ponteiro.
 ---
 
 
