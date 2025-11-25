@@ -46,7 +46,7 @@ int checkHIT(TabelaPagina TP[], unsigned int pagina);
  * 
  * @return Tabela atualizada com a página em novo frame
  */
-void PageFaultCorrection(TabelaPagina TP[], ConfigMemoria CM, int pag_virtual, int pid_atual, const char *algoritmo);
+void PageFaultCorrection(TabelaPagina TP[], ConfigMemoria CM, int pag_virtual, int pid_atual, const char *algoritmo, int *removed_page, int *removed_frame, int *pid_removido);
 
 /**
  * @brief Função -> tabela de páginas
